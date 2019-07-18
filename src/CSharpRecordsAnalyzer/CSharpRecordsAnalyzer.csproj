@@ -1,0 +1,51 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <IncludeBuildOutput>false</IncludeBuildOutput>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>CSharpRecordsAnalyzer</PackageId>
+    <Authors>dsschneidermann</Authors>
+    <Company>Dennis Schneidermann</Company>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/dsschneidermann/CSharpRecordsAnalyzer</PackageProjectUrl>
+    <PackageIconUrl></PackageIconUrl>
+    <RepositoryUrl>https://github.com/dsschneidermann/CSharpRecordsAnalyzer</RepositoryUrl>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Description>C# Analyzer for records (immutable structs and classes) and CodeFix to create constructor and `With` method. Installs as a development dependency.</Description>
+    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <Copyright>Copyright 2019</Copyright>
+    <PackageTags>CSharp Record Records Immutable Struct Roslyn CodeFix Analyzer Analyzers</PackageTags>
+    <NoPackageAnalysis>true</NoPackageAnalysis>
+    <Version>1.0.0</Version>
+    <Product>CSharpRecordsAnalyzer</Product>
+    <RepositoryType>Git</RepositoryType>
+    <LangVersion>latest</LangVersion>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyName>CSharpRecordsAnalyzer</AssemblyName>
+    <RootNamespace>CSharpRecordsAnalyzer</RootNamespace>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="2.9.3" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.1.0" PrivateAssets="all" />
+    <PackageReference Update="NETStandard.Library" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="tools\*" PackagePath="tools\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Remove bin folder from Solution but add the dll as a package target -->
+    <None Include="bin\Important-DoNotExclude.txt" Visible="true" />
+    <Content Include="$(OutputPath)\$(AssemblyName).dll" PackagePath="analyzers\dotnet\cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,3 @@
+# CSharpRecordsAnalyzer
+
+Documentation is coming
