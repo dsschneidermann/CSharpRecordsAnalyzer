@@ -89,14 +89,14 @@ public class Foo
         public void ExpressionBodiedNotationIsIgnored()
         {
             var before = @"
-internal class Foo
+public class Foo
 {
     public readonly int A;
     public int DeuxA => 2 * A;
 }
 ";
             var after = @"
-internal class Foo
+public class Foo
 {
     public readonly int A;
     public int DeuxA => 2 * A;
@@ -157,14 +157,14 @@ public class Foo<T>
         public void GetWithBodyIsIgnored()
         {
             var before = @"
-internal class Foo
+public class Foo
 {
     public readonly int A;
     public int DeuxA { get { return 2 * A; } }
 }
 ";
             var after = @"
-internal class Foo
+public class Foo
 {
     public readonly int A;
     public int DeuxA { get { return 2 * A; } }
@@ -486,7 +486,7 @@ public class Foo
         }
 
         [TestMethod]
-        public void StaticFieldsAndMethodsAreLeftUntouched_Ctor()
+        public void StaticFieldsAndMethodsAreLeftForCtor()
         {
             var before = @"
 public class Foo
@@ -533,7 +533,7 @@ public class Foo
         }
 
         [TestMethod]
-        public void StaticFieldsAndMethodsAreLeftUntouched_With()
+        public void StaticFieldsAndMethodsAreLeftForWithMethod()
         {
             var before = @"
 public class Foo
@@ -590,33 +590,174 @@ public class Foo
         }
 
         [TestMethod]
-        public void XmlIsKeptForCtor()
+        public void XmlIsKept()
         {
             var before = @"
-internal class Foo
+public class Foo
 {
-    /// <summary>My A</summary>
     public readonly int A;
     public readonly int B;
 
     /// <summary>The Ctor</summary>
-    /// <param name=""A"">My A</param>
+    /// <example>Some more tags</example>
     public Foo(int A)
     {
         this.A = A;
     }
+
+    /// <summary>The With method</summary>
+    /// <example>Some more tags</example>
+    public Foo With(int? A = null)
+    {
+        return new Foo(A ?? this.A);
+    }
 }
 ";
             var after = @"
-internal class Foo
+public class Foo
 {
-    /// <summary>My A</summary>
     public readonly int A;
     public readonly int B;
 
     /// <summary>The Ctor</summary>
-    /// <param name=""A"">My A</param>
+    /// <example>Some more tags</example>
     public Foo(int A, int B)
+    {
+        this.A = A;
+        this.B = B;
+    }
+
+    /// <summary>The With method</summary>
+    /// <example>Some more tags</example>
+    public Foo With(int? A = null, int? B = null)
+    {
+        return new Foo(A ?? this.A, B ?? this.B);
+    }
+}
+";
+            AssertUpdateConstructorAndWithMethodTransformsTo(before, after);
+        }
+
+        [TestMethod]
+        public void XmlIsPropagatedToCtor()
+        {
+            var before = @"
+public class Foo
+{
+    /// <summary>The Bar</summary>
+    public string Bar { get; }
+
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+}
+";
+            var after = @"
+public class Foo
+{
+    /// <summary>The Bar</summary>
+    public string Bar { get; }
+
+    /// <summary>_Ctor_</summary>
+    /// <param name=""Bar"">The Bar</param>
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+}
+" //
+                .Replace("_Ctor_", Constants.DefaultCtorSummary);
+            AssertUpdateConstructorTransformsTo(before, after);
+        }
+
+        [TestMethod]
+        public void XmlIsPropagatedToWithMethod()
+        {
+            var before = @"
+public class Foo
+{
+    /// <summary>The Bar</summary>
+    public string Bar { get; }
+
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+}
+";
+            var after = @"
+public class Foo
+{
+    /// <summary>The Bar</summary>
+    public string Bar { get; }
+
+    /// <summary>_Ctor_</summary>
+    /// <param name=""Bar"">The Bar</param>
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+
+    /// <summary>_With_</summary>
+    /// <param name=""Bar"">The Bar</param>
+    public Foo With(string Bar = null)
+    {
+        return new Foo(Bar ?? this.Bar);
+    }
+}
+" //
+                .Replace("_Ctor_", Constants.DefaultCtorSummary)
+                .Replace("_With_", Constants.DefaultModifierSummary);
+            AssertUpdateConstructorAndWithMethodTransformsTo(before, after);
+        }
+
+        [TestMethod]
+        public void XmlIsUpdatedForCtor()
+        {
+            var before = @"
+public class Foo
+{
+    /// <summary>The A is updated: <c>true</c></summary>
+    public string A { get; }
+    
+    /// <summary>The B is added: <c>true</c></summary>
+    public string B { get; }
+
+    /// <summary>
+    ///     My Ctor Summary
+    ///     multiple lines
+    /// </summary>
+    /// <example>
+    ///     Some more tags
+    /// </example>
+    /// <param name=""C"">The C is removed</param>
+    public Foo(string A, string C)
+    {
+        this.A = A;
+        this.C = C;
+    }
+}
+";
+            var after = @"
+public class Foo
+{
+    /// <summary>The A is updated: <c>true</c></summary>
+    public string A { get; }
+    
+    /// <summary>The B is added: <c>true</c></summary>
+    public string B { get; }
+
+    /// <summary>
+    ///     My Ctor Summary
+    ///     multiple lines
+    /// </summary>
+    /// <example>
+    ///     Some more tags
+    /// </example>
+    /// <param name=""A"">The A is updated: <c>true</c></param>
+    /// <param name=""B"">The B is added: <c>true</c></param>
+    public Foo(string A, string B)
     {
         this.A = A;
         this.B = B;
@@ -627,44 +768,70 @@ internal class Foo
         }
 
         [TestMethod]
-        public void XmlIsKeptForWithMethod()
+        public void XmlIsUpdatedForCtorAndWithMethod()
         {
             var before = @"
-internal class Foo
+public class Foo
 {
-    /// <summary>My A</summary>
-    public readonly int A;
-    public readonly int B;
+    /// <summary>The A is updated: <c>true</c></summary>
+    public string A { get; }
+    
+    /// <summary>The B is added: <c>true</c></summary>
+    public string B { get; }
 
-    public Foo(int A)
+    /// <summary>
+    ///     My Ctor Summary
+    ///     multiple lines
+    /// </summary>
+    /// <example>
+    ///     Some more tags
+    /// </example>
+    /// <param name=""C"">The C is removed</param>
+    public Foo(string A, string C)
     {
         this.A = A;
+        this.C = C;
     }
 
-    /// <summary>The With method</summary>
-    /// <param name=""A"">My A</param>
-    public Foo With(int? A = null)
+    /// <summary>My With Method Summary</summary>
+    /// <example>Some more tags</example>
+    /// <param name=""A"">The A</param>
+    /// <param name=""C"">The C is removed</param>
+    public Foo With(string A = null, string C = null)
     {
-        return new Foo(A ?? this.A);
+        return new Foo(A ?? this.A, C ?? this.C);
     }
 }
 ";
             var after = @"
-internal class Foo
+public class Foo
 {
-    /// <summary>My A</summary>
-    public readonly int A;
-    public readonly int B;
+    /// <summary>The A is updated: <c>true</c></summary>
+    public string A { get; }
+    
+    /// <summary>The B is added: <c>true</c></summary>
+    public string B { get; }
 
-    public Foo(int A, int B)
+    /// <summary>
+    ///     My Ctor Summary
+    ///     multiple lines
+    /// </summary>
+    /// <example>
+    ///     Some more tags
+    /// </example>
+    /// <param name=""A"">The A is updated: <c>true</c></param>
+    /// <param name=""B"">The B is added: <c>true</c></param>
+    public Foo(string A, string B)
     {
         this.A = A;
         this.B = B;
     }
 
-    /// <summary>The With method</summary>
-    /// <param name=""A"">My A</param>
-    public Foo With(int? A = null, int? B = null)
+    /// <summary>My With Method Summary</summary>
+    /// <example>Some more tags</example>
+    /// <param name=""A"">The A is updated: <c>true</c></param>
+    /// <param name=""B"">The B is added: <c>true</c></param>
+    public Foo With(string A = null, string B = null)
     {
         return new Foo(A ?? this.A, B ?? this.B);
     }

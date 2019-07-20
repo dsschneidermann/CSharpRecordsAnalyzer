@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29025.244
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpRecordsAnalyzer", "src\CSharpRecordsAnalyzer\CSharpRecordsAnalyzer.csproj", "{024B35FD-BED7-402B-95F1-6BD7BC8BC698}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CSharpRecordsAnalyzer.Test", "src\CSharpRecordsAnalyzer.Test\CSharpRecordsAnalyzer.Test.csproj", "{2FEC10D9-EA9B-4D69-83D3-1968C0830DFD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{024B35FD-BED7-402B-95F1-6BD7BC8BC698}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{024B35FD-BED7-402B-95F1-6BD7BC8BC698}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{024B35FD-BED7-402B-95F1-6BD7BC8BC698}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{024B35FD-BED7-402B-95F1-6BD7BC8BC698}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2FEC10D9-EA9B-4D69-83D3-1968C0830DFD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FEC10D9-EA9B-4D69-83D3-1968C0830DFD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FEC10D9-EA9B-4D69-83D3-1968C0830DFD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FEC10D9-EA9B-4D69-83D3-1968C0830DFD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {16A0779D-9D73-4FFC-A971-8062EC6A67BE}
+	EndGlobalSection
+EndGlobal

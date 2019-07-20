@@ -50,29 +50,36 @@ namespace CSharpRecordsAnalyzer
                 "DateTimeOffset",
                 "System.DateTimeOffset",
                 "TimeSpan",
-                "System.TimeSpan"
+                "System.TimeSpan",
+                "ValueTuple",
+                "System.ValueTuple"
             }
         );
 
-        public Field(string Name, TypeSyntax Type, bool IsNonNullable, SyntaxList<AttributeListSyntax> Attributes)
+        public Field(
+            string Name, TypeSyntax Type, SyntaxTriviaList? StructuredTrivia, bool IsNonNullable,
+            SyntaxList<AttributeListSyntax> Attributes)
         {
             this.Name = Name;
             this.Type = Type;
+            this.StructuredTrivia = StructuredTrivia;
             this.IsNonNullable = IsNonNullable;
             this.Attributes = Attributes;
         }
 
         public string Name { get; }
         public TypeSyntax Type { get; }
+        public SyntaxTriviaList? StructuredTrivia { get; }
         public bool IsNonNullable { get; }
         public SyntaxList<AttributeListSyntax> Attributes { get; }
 
         public Field With(
-            string Name = null, TypeSyntax Type = null, bool? IsNonNullable = null,
-            SyntaxList<AttributeListSyntax>? Attributes = null)
+            string Name = null, TypeSyntax Type = null, SyntaxTriviaList? StructuredTrivia = null,
+            bool? IsNonNullable = null, SyntaxList<AttributeListSyntax>? Attributes = null)
         {
             return new Field(
-                Name ?? this.Name, Type ?? this.Type, IsNonNullable ?? this.IsNonNullable, Attributes ?? this.Attributes
+                Name ?? this.Name, Type ?? this.Type, StructuredTrivia ?? this.StructuredTrivia,
+                IsNonNullable ?? this.IsNonNullable, Attributes ?? this.Attributes
             );
         }
 
@@ -103,6 +110,9 @@ namespace CSharpRecordsAnalyzer
                     return new Field(
                         fieldDeclarationSyntax.Declaration.Variables.First().Identifier.Text,
                         fieldDeclarationSyntax.Declaration.Type,
+                        fieldDeclarationSyntax.HasStructuredTrivia
+                            ? fieldDeclarationSyntax.GetLeadingTrivia()
+                            : (SyntaxTriviaList?) null,
                         IsTypeSyntaxNonNullable(fieldDeclarationSyntax.Declaration.Type), default
                     );
                 }
@@ -117,7 +127,9 @@ namespace CSharpRecordsAnalyzer
                 {
                     return new Field(
                         propertyDeclarationSyntax.Identifier.Text, propertyDeclarationSyntax.Type,
-                        IsTypeSyntaxNonNullable(propertyDeclarationSyntax.Type), default
+                        propertyDeclarationSyntax.HasStructuredTrivia
+                            ? propertyDeclarationSyntax.GetLeadingTrivia()
+                            : (SyntaxTriviaList?) null, IsTypeSyntaxNonNullable(propertyDeclarationSyntax.Type), default
                     );
                 }
             }
@@ -132,8 +144,7 @@ namespace CSharpRecordsAnalyzer
     {
         public override ImmutableArray<string> FixableDiagnosticIds =>
             ImmutableArray.Create(
-                CSharpRecordsAnalyzer.ImmutableRecordUpdateDiagnostic.Id,
-                CSharpRecordsAnalyzer.ImmutableRecordCreateDiagnostic.Id
+                CSharpRecordsAnalyzer.RecordUpdateDiagnostic.Id, CSharpRecordsAnalyzer.RecordCreateDiagnostic.Id
             );
 
         public override FixAllProvider GetFixAllProvider()
@@ -163,18 +174,18 @@ namespace CSharpRecordsAnalyzer
 
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    "Update immutable record constructor and modifier method",
+                    "Update record constructor and modifier",
                     c => ApplyToTypeDeclarationInDocument(
                         context.Document, declaration, c, UpdateConstructorAndWithMethod
-                    ), "Update immutable record constructor and modifier method"
+                    ), "Update record constructor and modifier"
                 ), diagnostic
             );
 
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    "Update immutable record constructor",
+                    "Update record constructor",
                     c => ApplyToTypeDeclarationInDocument(context.Document, declaration, c, UpdateConstructor),
-                    "Update immutable record constructor"
+                    "Update record constructor"
                 ), diagnostic
             );
         }
@@ -296,10 +307,11 @@ namespace CSharpRecordsAnalyzer
                 .WithParameterList(constructorParameters)
                 .WithBody(SF.Block(constructorBodyStatements));
 
-            var previousComments = maybePreviousConstructor?.HasLeadingTrivia ?? false
-                ? maybePreviousConstructor?.GetLeadingTrivia()
-                : null;
-            res = previousComments.HasValue ? res.WithLeadingTrivia(previousComments) : res;
+            res = fieldsList.Any(x => x.StructuredTrivia != null) ? res.WithLeadingTrivia(
+                    MakeXmlDocComments(maybePreviousConstructor, fieldsList, Constants.DefaultCtorSummary)
+                ) :
+                maybePreviousConstructor?.HasLeadingTrivia ?? false ?
+                    res.WithLeadingTrivia(maybePreviousConstructor.GetLeadingTrivia()) : res;
 
             return res;
         }
@@ -356,11 +368,90 @@ namespace CSharpRecordsAnalyzer
                     )
                 );
 
-            var previousComments = maybePreviousWithMethod?.HasLeadingTrivia ?? false
-                ? maybePreviousWithMethod?.GetLeadingTrivia()
-                : null;
-            res = previousComments.HasValue ? res.WithLeadingTrivia(previousComments) : res;
+            res = fieldsList.Any(x => x.StructuredTrivia != null) ? res.WithLeadingTrivia(
+                    MakeXmlDocComments(maybePreviousWithMethod, fieldsList, Constants.DefaultModifierSummary)
+                ) :
+                maybePreviousWithMethod?.HasLeadingTrivia ?? false ?
+                    res.WithLeadingTrivia(maybePreviousWithMethod.GetLeadingTrivia()) : res;
+
             return res;
+        }
+
+        private static SyntaxTriviaList MakeXmlDocComments(
+            SyntaxNode maybePrevious, IEnumerable<Field> fields, string defaultSummary)
+        {
+            var xmlParameters = fields.Where(x => x.StructuredTrivia != null)
+                .Select(
+                    x => new
+                    {
+                        Field = x,
+                        FieldSummary = x.StructuredTrivia?.Select(i => i.GetStructure())
+                            .OfType<DocumentationCommentTriviaSyntax>()
+                            .FirstOrDefault()
+                            ?.ChildNodes()
+                            .OfType<XmlElementSyntax>()
+                            .FirstOrDefault(i => i.StartTag.Name.ToString() == "summary")
+                    }
+                );
+
+            var newXmlParameters = xmlParameters.Select(
+                x => x.FieldSummary.WithStartTag(
+                        SF.XmlElementStartTag(
+                            SF.XmlName("param"),
+                            SF.SingletonList((XmlAttributeSyntax) SF.XmlNameAttribute(x.Field.Name))
+                        )
+                    )
+                    .WithEndTag(SF.XmlElementEndTag(SF.XmlName("param")))
+            );
+
+            var existingXmlTrivia = maybePrevious?.HasStructuredTrivia == true
+                ? maybePrevious.GetLeadingTrivia()
+                    .Select(i => i.GetStructure())
+                    .OfType<DocumentationCommentTriviaSyntax>()
+                    .FirstOrDefault()
+                : null;
+
+            var xmlTrivia = existingXmlTrivia ?? SF.DocumentationCommentTrivia(
+                    SyntaxKind.SingleLineDocumentationCommentTrivia, SF.List(
+                        new XmlNodeSyntax[]
+                        {
+                            SF.XmlText(" "),
+                            SF.XmlSummaryElement(SF.XmlText(defaultSummary))
+                        }
+                    )
+                )
+                .WithLeadingTrivia(SF.TriviaList(SF.DocumentationCommentExterior("///")));
+
+            var xmlNodes = xmlTrivia.ChildNodes()
+                .OfType<XmlNodeSyntax>()
+                .Where(node => !(node is XmlElementSyntax xmlElement) || xmlElement.StartTag.Name.ToString() != "param")
+                .ToList();
+
+            var xmlElementsToKeep = xmlNodes.FindLastIndex(x => x is XmlElementSyntax) + 1;
+            var xmlElements = xmlNodes.Take(xmlElementsToKeep).ToList();
+
+            return SF.TriviaList(
+                SF.LineFeed,
+                SF.Trivia(
+                    xmlTrivia.WithContent(
+                        SF.List(
+                            xmlElements.Concat(
+                                newXmlParameters.SelectMany(
+                                    x => new XmlNodeSyntax[]
+                                    {
+                                        SF.XmlText("\n"),
+                                        x.WithLeadingTrivia(
+                                            SF.TriviaList()
+                                                .Concat(xmlTrivia.GetLeadingTrivia())
+                                                .Concat(new[] {SF.Space})
+                                        )
+                                    }
+                                )
+                            )
+                        )
+                    )
+                ), SF.LineFeed
+            );
         }
 
         private static ConstructorDeclarationSyntax MaybePreviousConstructor(TypeDeclarationSyntax typeDeclaration) =>

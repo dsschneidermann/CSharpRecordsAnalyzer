@@ -164,7 +164,22 @@ namespace CSharpRecordsAnalyzer.Test.Verifiers
 
             //after applying all of the code fixes, compare the resulting string to the inputted one
             var actual = Helpers.CodeFixVerifier.GetStringFromDocument(document);
-            Assert.AreEqual(newSource, actual);
+
+            var firstDiff = actual.Zip(newSource, (p, q) => new {actual = p, expected = q})
+                .Select((x, idx) => (item: x, idx))
+                .Where(x => x.item.expected != x.item.actual)
+                .Select(x => x.idx)
+                .FirstOrDefault();
+
+            string GetStringContext(string characters, int position, int context)
+            {
+                return new string(characters.Skip(position - context / 2).Take(context).ToArray());
+            }
+
+            Assert.AreEqual(
+                newSource, actual,
+                $"Not the same at position: {firstDiff}. \nExpected: \"{GetStringContext(newSource, firstDiff, 20)}\"\nActual: \"{GetStringContext(actual, firstDiff, 20)}\""
+            );
         }
     }
 }

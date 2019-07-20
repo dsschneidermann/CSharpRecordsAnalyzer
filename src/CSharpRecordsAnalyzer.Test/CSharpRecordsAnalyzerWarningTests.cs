@@ -19,14 +19,14 @@ namespace CSharpRecordsAnalyzer.Test
             var ast = @"
 public class Foo
 {
-public string Bar { get; }
-public readonly int Dummy;
+    public string Bar { get; }
+    public readonly int Dummy;
 
-public Foo(string Bar, int Dummy)
-{
-    this.Bar = Bar;
-    this.Dummy = Dummy;
-}
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        this.Dummy = Dummy;
+    }
 }
 ";
             AssertEligible(false, ast);
@@ -38,19 +38,19 @@ public Foo(string Bar, int Dummy)
             var ast = @"
 public class Foo
 {
-public string Bar { get; }
-public readonly int Dummy;
+    public string Bar { get; }
+    public readonly int Dummy;
 
-public Foo(string Bar, int Dummy)
-{
-    this.Bar = Bar;
-    this.Dummy = Dummy;
-}
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        this.Dummy = Dummy;
+    }
 
-public Foo With(string Bar = null, int? Dummy = null)
-{
-    return new Foo(Bar ?? this.Bar, Dummy ?? this.Dummy);
-}
+    public Foo With(string Bar = null, int? Dummy = null)
+    {
+        return new Foo(Bar ?? this.Bar, Dummy ?? this.Dummy);
+    }
 }
 ";
             AssertEligible(false, ast);
@@ -62,14 +62,14 @@ public Foo With(string Bar = null, int? Dummy = null)
             var ast = @"
 public struct Foo
 {
-public string Bar { get; }
-public int Dummy;
+    public string Bar { get; }
+    public int Dummy;
 
-public Foo(string Bar)
-{
-    this.Bar = Bar;
-    // Struct is broken because Dummy must be assigned.
-}
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+        // Struct is broken because Dummy must be assigned.
+    }
 }
 ";
             AssertEligible(true, ast);
@@ -120,96 +120,6 @@ public class Foo<T>
         }
 
         [TestMethod]
-        public void IncorrectImmutableCtorImplementationIsEligible()
-        {
-            var ast = @"
-public class Foo
-{
-public string Bar { get; }
-public readonly int Dummy;
-
-public Foo(string Bar, int Dummy)
-{
-    this.Bar = Bar;
-    //this.Dummy = Dummy;
-}
-}
-";
-            AssertEligible(true, ast);
-        }
-
-        [TestMethod]
-        public void IncorrectImmutableCtorParameterIsEligible()
-        {
-            var ast = @"
-public class Foo
-{
-public string Bar { get; }
-public readonly int Dummy;
-
-public Foo(string Bar)
-{
-    this.Bar = Bar;
-}
-}
-";
-            AssertEligible(true, ast);
-        }
-
-        [TestMethod]
-        public void IncorrectImmutableWithMethodImplementationIsEligible()
-        {
-            var ast = @"
-public class Foo
-{
-public string Bar { get; }
-public readonly int Dummy;
-
-public Foo(string Bar, int Dummy)
-{
-    this.Bar = Bar;
-    this.Dummy = Dummy;
-}
-
-public Foo(string Bar)
-{
-    this.Bar = Bar;
-}
-
-public Foo With(string Bar = null, int Dummy = null)
-{
-    return new Foo(Bar ?? this.Bar);
-}
-}
-";
-            AssertEligible(true, ast);
-        }
-
-        [TestMethod]
-        public void IncorrectImmutableWithMethodParameterIsEligible()
-        {
-            var ast = @"
-public class Foo
-{
-public string Bar { get; }
-public readonly int Dummy;
-
-public Foo(string Bar, int Dummy)
-{
-    this.Bar = Bar;
-    this.Dummy = Dummy;
-}
-
-public Foo With(string Bar = null)
-{
-    return new Foo(Bar ?? this.Bar);
-}
-}
-";
-            AssertEligible(true, ast);
-        }
-
-        [TestMethod]
         public void LowerCaseCtorParametersIsNotEligible()
         {
             var ast = @"
@@ -222,6 +132,67 @@ public class Foo
     public int N { get; }
 }";
             AssertEligible(false, ast);
+        }
+
+        [TestMethod]
+        public void MissingAssignmentInCtorIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    public readonly int Dummy;
+
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        //this.Dummy = Dummy;
+    }
+}
+";
+            AssertEligible(true, ast);
+        }
+
+        [TestMethod]
+        public void MissingParameterInCtorParameterIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    public readonly int Dummy;
+
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+}
+";
+            AssertEligible(true, ast);
+        }
+
+        [TestMethod]
+        public void MissingParameterInWithMethodIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    public readonly int Dummy;
+
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        this.Dummy = Dummy;
+    }
+
+    public Foo With(string Bar = null)
+    {
+        return new Foo(Bar ?? this.Bar);
+    }
+}
+";
+            AssertEligible(true, ast);
         }
 
         [TestMethod]
@@ -240,6 +211,109 @@ public class Foo
     public double Val1 { get; }
     public double Val2 { get; }
 }";
+            AssertEligible(true, ast);
+        }
+
+        [TestMethod]
+        public void NullAssignmentInCtorIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    public readonly int Dummy;
+
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        this.Dummy = Dummy;
+        this.Bar = null;
+    }
+}
+";
+            AssertEligible(true, ast);
+        }
+
+        [TestMethod]
+        public void PrivateAssignmentInCtorIsNotEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    private readonly int Dummy;
+
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+        this.Dummy = 123;
+    }
+}
+";
+            AssertEligible(false, ast);
+        }
+
+        [TestMethod]
+        public void PrivateMemberIsNotEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public readonly int A;
+    private readonly int B;
+
+    public Foo(int A)
+    {
+        this.A = A;
+    }
+}
+";
+            AssertEligible(false, ast);
+        }
+
+        [TestMethod]
+        public void TooManyParametersInCtorParameterIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+
+    public Foo(string Bar, string Dummy)
+    {
+        this.Bar = Bar;
+    }
+}
+";
+            AssertEligible(true, ast);
+        }
+
+        [TestMethod]
+        public void TooManyParametersInWithMethodIsEligible()
+        {
+            var ast = @"
+public class Foo
+{
+    public string Bar { get; }
+    public readonly int Dummy;
+
+    public Foo(string Bar, int Dummy)
+    {
+        this.Bar = Bar;
+        this.Dummy = Dummy;
+    }
+
+    public Foo(string Bar)
+    {
+        this.Bar = Bar;
+    }
+
+    public Foo With(string Bar = null, int Dummy = null)
+    {
+        return new Foo(Bar ?? this.Bar);
+    }
+}
+";
             AssertEligible(true, ast);
         }
 

@@ -14,12 +14,12 @@
     <PackageIconUrl></PackageIconUrl>
     <RepositoryUrl>https://github.com/dsschneidermann/CSharpRecordsAnalyzer</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>C# Analyzer for records (immutable structs and classes) and CodeFix to create constructor and `With` method. Installs as a development dependency.</Description>
-    <PackageReleaseNotes>Initial release.</PackageReleaseNotes>
+    <Description>C# records (immutable structs and classes) analyzer and code fix to create Constructor and `With` method. Installs as a development dependency.</Description>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <Copyright>Copyright 2019</Copyright>
     <PackageTags>CSharp Record Records Immutable Struct Roslyn CodeFix Analyzer Analyzers</PackageTags>
     <NoPackageAnalysis>true</NoPackageAnalysis>
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <Product>CSharpRecordsAnalyzer</Product>
     <RepositoryType>Git</RepositoryType>
     <LangVersion>latest</LangVersion>

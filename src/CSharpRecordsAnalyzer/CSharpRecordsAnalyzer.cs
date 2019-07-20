@@ -16,18 +16,18 @@ namespace CSharpRecordsAnalyzer
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class CSharpRecordsAnalyzer : DiagnosticAnalyzer
     {
-        internal static readonly DiagnosticDescriptor ImmutableRecordCreateDiagnostic = new DiagnosticDescriptor(
-            "ImmutableRecordCreate", "Records constructor and modifiers can be created",
-            "Records constructor and modifiers can be created", "Refactoring", DiagnosticSeverity.Hidden, true
+        internal static readonly DiagnosticDescriptor RecordCreateDiagnostic = new DiagnosticDescriptor(
+            "RecordCreate", "Record constructor and modifier can be created",
+            "Record constructor and modifier can be created", "Refactoring", DiagnosticSeverity.Hidden, true
         );
 
-        internal static readonly DiagnosticDescriptor ImmutableRecordUpdateDiagnostic = new DiagnosticDescriptor(
-            "ImmutableRecordUpdate", "Records constructor and modifiers can be updated",
-            "Records constructor and modifiers can be updated", "Refactoring", DiagnosticSeverity.Warning, true
+        internal static readonly DiagnosticDescriptor RecordUpdateDiagnostic = new DiagnosticDescriptor(
+            "RecordUpdate", "Record constructor and modifier can be updated",
+            "Record constructor and modifier can be updated", "Refactoring", DiagnosticSeverity.Warning, true
         );
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-            ImmutableArray.Create(ImmutableRecordUpdateDiagnostic, ImmutableRecordCreateDiagnostic);
+            ImmutableArray.Create(RecordUpdateDiagnostic, RecordCreateDiagnostic);
 
         public override void Initialize(AnalysisContext context)
         {
@@ -47,26 +47,28 @@ namespace CSharpRecordsAnalyzer
                 );
                 context.ReportDiagnostic(
                     IsImplementedWrong(typeDeclaration)
-                        ? Diagnostic.Create(ImmutableRecordUpdateDiagnostic, location)
-                        : Diagnostic.Create(ImmutableRecordCreateDiagnostic, location)
+                        ? Diagnostic.Create(RecordUpdateDiagnostic, location)
+                        : Diagnostic.Create(RecordCreateDiagnostic, location)
                 );
             }
         }
 
         public static bool IsImplementedWrong(TypeDeclarationSyntax typeDeclaration)
         {
-            var nonStaticFields = typeDeclaration.Members.OfType<FieldDeclarationSyntax>()
-                .Where(field => field.Modifiers.All(m => m.Kind() != SyntaxKind.StaticKeyword));
+            var nonStaticPublicFields = typeDeclaration.Members.OfType<FieldDeclarationSyntax>()
+                .Where(field => field.Modifiers.All(m => m.Kind() != SyntaxKind.StaticKeyword))
+                .Where(field => field.Modifiers.Any(m => m.Kind() == SyntaxKind.PublicKeyword));
 
-            var nonStaticPropertiesWithNoBody = typeDeclaration.Members.OfType<PropertyDeclarationSyntax>()
+            var nonStaticPublicPropertiesWithNoBody = typeDeclaration.Members.OfType<PropertyDeclarationSyntax>()
                 .Where(property => property.Modifiers.All(m => m.Kind() != SyntaxKind.StaticKeyword))
+                .Where(property => property.Modifiers.Any(m => m.Kind() == SyntaxKind.PublicKeyword))
                 .Where(property => property.AccessorList != null)
                 .Where(property => property.AccessorList.Accessors.All(x => x.Body == null));
 
-            var fieldNames = nonStaticFields.SelectMany(x => x.Declaration.Variables)
+            var fieldNames = nonStaticPublicFields.SelectMany(x => x.Declaration.Variables)
                 .Select(x => x.Identifier.Text)
                 .Distinct();
-            var propertyNames = nonStaticPropertiesWithNoBody.Select(x => x.Identifier.Text);
+            var propertyNames = nonStaticPublicPropertiesWithNoBody.Select(x => x.Identifier.Text);
             var fieldsAndPropertiesSorted = fieldNames.Concat(propertyNames).OrderBy(x => x).ToList();
 
             var ctorDeclaration = typeDeclaration.Members.OfType<ConstructorDeclarationSyntax>()
@@ -87,16 +89,15 @@ namespace CSharpRecordsAnalyzer
                     // Correct if one parameter for each field and property.
                     var isDeclarationCorrect = parameters.SequenceEqual(fieldsAndPropertiesSorted);
 
-                    var ctorAssignments = ctor.Body.Statements.Where(
-                        statement => GetLeftMemberAssignmentIdentifier(statement) == GetRightSideIdentifier(statement)
-                    );
+                    var ctorAssignments = ctor.Body.Statements
+                        .Select(
+                            x => new {left = GetLeftMemberAssignmentIdentifier(x), right = GetRightSideIdentifier(x)}
+                        )
+                        .Where(x => fieldsAndPropertiesSorted.Contains(x.left))
+                        .ToList();
 
-                    // Correct if the number of unique "this.Member = Member" assignments equal
-                    // the total number of fields and properties that should be assigned.
-                    // It is not intended to be bulletproof and it is indeed possible to have
-                    // incorrect constructors that pass: for example by adding an extra line
-                    // "this.Member = null"
-                    var isImplementationCorrect = ctorAssignments.Distinct().Count() == fieldsAndPropertiesSorted.Count;
+                    var isImplementationCorrect = ctorAssignments.Count == fieldsAndPropertiesSorted.Count &&
+                        ctorAssignments.All(x => x.left == x.right);
 
                     return isDeclarationCorrect && isImplementationCorrect;
 
@@ -199,7 +200,7 @@ namespace CSharpRecordsAnalyzer
 
             var isWithMethodImplementedCorrectly = bestWithMethod != null;
 
-            // Warn if it's possible to implement immutable record and ctor has been created for it,
+            // Warn if it's possible to implement record and ctor has been created for it,
             // but ctor is not correct or With method is not correct.
             return isCtorImplemented && !isCtorImplementedCorrectly ||
                 isCtorImplemented && isWithMethodImplemented && !isWithMethodImplementedCorrectly;
