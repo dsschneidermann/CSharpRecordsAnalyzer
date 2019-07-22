@@ -172,20 +172,28 @@ namespace CSharpRecordsAnalyzer
                 throw new ArgumentNullException(nameof(declaration));
             }
 
+            var updateBoth = "Update record constructor and modifier";
+            var updateSingle = "Update record constructor";
+
+#if DEBUG
+            updateBoth = $"{updateBoth} (v{typeof(CSharpRecordsCodeFixProvider).Assembly.GetName().Version})";
+            updateSingle = $"{updateSingle} (v{typeof(CSharpRecordsCodeFixProvider).Assembly.GetName().Version})";
+#endif
+
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    "Update record constructor and modifier",
+                    updateBoth,
                     c => ApplyToTypeDeclarationInDocument(
                         context.Document, declaration, c, UpdateConstructorAndWithMethod
-                    ), "Update record constructor and modifier"
+                    ), updateBoth
                 ), diagnostic
             );
 
             context.RegisterCodeFix(
                 CodeAction.Create(
-                    "Update record constructor",
+                    updateSingle,
                     c => ApplyToTypeDeclarationInDocument(context.Document, declaration, c, UpdateConstructor),
-                    "Update record constructor"
+                    updateSingle
                 ), diagnostic
             );
         }
