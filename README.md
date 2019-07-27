@@ -1,4 +1,4 @@
-# CSharpRecordsAnalyzer ![NuGet Version](https://img.shields.io/nuget/v/CSharpRecordsAnalyzer.svg?logo=nuget)
+# CSharpRecordsAnalyzer [![Build Status](https://img.shields.io/appveyor/ci/dsschneidermann/csharprecordsanalyzer/master?logo=appveyor)](https://ci.appveyor.com/project/dsschneidermann/csharprecordsanalyzer/branch/master) ![Test Status](https://img.shields.io/appveyor/tests/dsschneidermann/csharprecordsanalyzer/master?logo=appveyor) ![NuGet Version](https://img.shields.io/nuget/v/CSharpRecordsAnalyzer.svg?logo=nuget) [![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=dsschneidermann/CSharpRecordsAnalyzer)](https://dependabot.com)
 
 Created from [matzoliv/CSharpRecords](https://github.com/matzoliv/CSharpRecords) (vsix extension) as a starting point and much improved.
 
