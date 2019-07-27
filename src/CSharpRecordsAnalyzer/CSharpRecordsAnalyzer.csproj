@@ -19,7 +19,7 @@
     <Copyright>Copyright 2019</Copyright>
     <PackageTags>CSharp Record Records Immutable Struct Roslyn CodeFix Analyzer Analyzers</PackageTags>
     <NoPackageAnalysis>true</NoPackageAnalysis>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Product>CSharpRecordsAnalyzer</Product>
     <RepositoryType>Git</RepositoryType>
     <LangVersion>latest</LangVersion>
@@ -27,6 +27,10 @@
     <AssemblyName>CSharpRecordsAnalyzer</AssemblyName>
     <RootNamespace>CSharpRecordsAnalyzer</RootNamespace>
     <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <DocumentationFile>CSharpRecordsAnalyzer.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>

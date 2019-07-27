@@ -31,6 +31,8 @@ namespace CSharpRecordsAnalyzer
 
         public override void Initialize(AnalysisContext context)
         {
+            context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+            context.EnableConcurrentExecution();
             context.RegisterSyntaxNodeAction(AnalyzeSyntax, SyntaxKind.ClassDeclaration, SyntaxKind.StructDeclaration);
         }
 
